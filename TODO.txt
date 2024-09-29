@@ -1,0 +1,1 @@
+make password validation better: error handling, see/unsee, password strength

@@ -12,15 +12,51 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SignInFlow } from "../types";
 import { useState } from "react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { TriangleAlert } from "lucide-react"
 
-interface SignUpCardprops {
+interface SignInCardprops {
     setState: (state: SignInFlow) => void
 }
 
-export default function SignUpCard({ setState }: SignUpCardprops) {
+export default function SignInCard({ setState }: SignInCardprops) {
+    const { signIn } = useAuthActions()
+
+    const [pending, setPending] = useState(false)
+    const [error, setError] = useState("")
     const [email, setEmail] = useState("")
+    const [name, setName] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
+
+    const onPasswordSignUp = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+
+        if(password !== confirmPassword) {
+            setError("Passwords do not match")
+            return
+        }
+
+        console.log({email, password, confirmPassword})
+        setPending(true)
+        signIn("password", { name, email, password, flow: "signUp" })
+        .catch(err => {
+                console.log(err.name)
+                if(err.name === "TypeError") {
+                    setError("Password needs to have upper and lowercase, number and symbol")
+                } else {
+                    setError("Something went wrong")
+                }
+            })
+            .finally(() => {
+                setPending(false)
+            })
+    }
+    
+    const onProviderSignUp = (value: "github" | "google") => {
+        setPending(true)
+        signIn(value).finally(() => setPending(false))
+    }
 
     return (
         <Card className="w-full h-full p-8">
@@ -32,10 +68,26 @@ export default function SignUpCard({ setState }: SignUpCardprops) {
                     Use your email or another service to continue
                 </CardDescription>
             </CardHeader>
+            {!!error && (
+                <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
+                    <TriangleAlert className="size-4"/>
+                    <p>{error}</p>
+                </div>
+            )}
             <CardContent className="space-y-5 px-0 pb-0">
-                <form className="space-y-2.5">
+                <form onSubmit={onPasswordSignUp} className="space-y-2.5">
                     <Input
-                        disabled={false}
+                        disabled={pending}
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Your name"
+                        type="name"
+                        required
+                    >
+                    </Input>
+
+                    <Input
+                        disabled={pending}
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         placeholder="Email"
@@ -45,26 +97,26 @@ export default function SignUpCard({ setState }: SignUpCardprops) {
                     </Input>
 
                     <Input
-                        disabled={false}
+                        disabled={pending}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         placeholder="Password"
-                        type="password"
+                        // type="password"
                         required
                     >
                     </Input>
 
                     <Input
-                        disabled={false}
+                        disabled={pending}
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                         placeholder="Confirm Password"
-                        type="password"
+                        // type="password"
                         required
                     >
                     </Input>
 
-                    <Button type="submit" className="w-full" size="lg" disabled={false}>
+                    <Button type="submit" className="w-full" size="lg" disabled={pending}>
                         Continue
                     </Button>
                 </form>
@@ -72,8 +124,8 @@ export default function SignUpCard({ setState }: SignUpCardprops) {
                 <Separator></Separator>
                 <div className="flex flex-col gap-y-2.5">
                     <Button
-                        disabled={false}
-                        onClick={() => {}}
+                        disabled={pending}
+                        onClick={() => onProviderSignUp("google")}
                         variant={"outline"}
                         size="lg"
                         className="w-full relative"    
@@ -82,8 +134,8 @@ export default function SignUpCard({ setState }: SignUpCardprops) {
                         Continue with Google
                     </Button>
                     <Button
-                        disabled={false}
-                        onClick={() => {}}
+                        disabled={pending}
+                        onClick={() => onProviderSignUp("github")}
                         variant={"outline"}
                         size="lg"
                         className="w-full relative"    
@@ -93,7 +145,7 @@ export default function SignUpCard({ setState }: SignUpCardprops) {
                     </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Already have an account? <span onClick={()=>setState("signIn")} className="text-sky-700 hover:underline cursor-pointer">Login here</span>
+                    Don&apos;t have an account? <span onClick={()=>setState("signUp")} className="text-sky-700 hover:underline cursor-pointer">Login here</span>
                 </p>
             </CardContent>
         </Card>
